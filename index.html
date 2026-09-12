@@ -1,0 +1,705 @@
+﻿<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; worker-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'" />
+    <script src="./preview-theme.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#EEEFF1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>미리보기 · 퀵플렉스 매출관리</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./favicon-32.png?v=3" type="image/png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png?v=3" />
+    
+    <style id="initialThemeStyles">
+      :root { background: #EEEFF1; color-scheme: light; }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) { background: #0A0C10; color-scheme: dark; }
+      }
+      :root[data-theme="dark"] { background: #0A0C10; color-scheme: dark; }
+    </style>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    
+    <aside class="preview-chrome" aria-label="미리보기 도구"><span id="previewStatus">미리보기 · 가상 기록</span><button id="previewReload" type="button">새로고침</button><button id="previewReset" type="button">초기화</button></aside>
+    <div class="app" id="app" data-view="home" data-driver-type="backup">
+      <section class="view view-home">
+        <header class="home-header">
+          <div class="home-top">
+            <div>
+              <h1 id="profileName">매출관리</h1>
+              <p id="periodRange" class="muted">정산기간 -</p>
+            </div>
+            <button class="icon-btn" id="openSettings" aria-label="설정"><svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+          </div>
+          <div class="summary-card revenue-hero">
+            <div class="summary-row">
+              <span>정산 예상액</span>
+              <span class="summary-period-badge">입력된 기록 기준</span>
+              <strong id="periodRevenue">0<small class="metric-unit">원</small></strong>
+            </div>
+            <p class="meter-label" id="meterLabel">목표 대비 진행률</p>
+            <div class="meter-wrap">
+              <div class="summary-meter"><span id="meterFill"></span></div>
+              <span class="meter-pct" id="meterPct">0%</span>
+            </div>
+
+          </div>
+        </header>
+
+        <div id="todayRoutes" class="today-routes" aria-label="오늘 근무 구역"></div>
+
+        <main class="calendar-panel">
+          <div class="calendar-toolbar">
+            <button class="round-btn" id="prevMonth" aria-label="이전 달"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <div class="calendar-month-heading"><strong id="monthTitle" aria-live="polite">-</strong><small id="monthWorkDays" hidden></small></div>
+            <button class="round-btn" id="nextMonth" aria-label="다음 달"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+            <button class="today-btn" id="todayButton">오늘</button>
+          </div>
+          <div class="mode-toggle" role="group" aria-label="달력 표시 기준">
+            <button class="mode-btn active" data-mode="amount" type="button" aria-pressed="true">매출</button>
+            <button class="mode-btn" data-mode="count" type="button" aria-pressed="false">건수</button>
+          </div>
+          <div class="week-head">
+            <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
+          </div>
+          <div id="monthCalendar" class="calendar-grid"></div>
+          <div id="monthRecordList" class="month-record-list" aria-label="월 근무 기록" hidden></div>
+        </main>
+
+        <section id="selectedDateBreakdown" class="selected-date-breakdown hidden" aria-labelledby="selectedDateBreakdownTitle">
+          <div class="selected-breakdown-head">
+            <div>
+              <span>선택 날짜 상세</span>
+              <strong id="selectedDateBreakdownTitle">구역별 매출</strong>
+            </div>
+            <button id="openSalesOverride" class="secondary-btn" type="button">기록 수정</button>
+          </div>
+          <div id="selectedDateBreakdownRows" class="selected-breakdown-rows"></div>
+          <p id="selectedDateBreakdownNote" class="selected-breakdown-note"></p>
+        </section>
+
+        <footer class="day-dock">
+          <div>
+            <span id="homeSelectedDate">날짜를 선택하세요</span>
+            <strong id="homeSelectedTotal">0원</strong>
+          </div>
+          <button class="ghost-pill" id="homeOffToggle" type="button" role="checkbox" aria-checked="false">휴무</button>
+          <button class="primary-pill" id="openRecord">기록하기</button>
+        </footer>
+      </section>
+
+      <section class="view view-inspection">
+        <header class="sub-header inspection-header">
+          <button class="round-btn" id="backFromInspection" aria-label="달력으로"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <div class="sub-title"><strong>일상점검</strong><span>운행 전 차량 상태 확인</span></div>
+          <div class="inspection-header-actions">
+            <button class="secondary-btn inspection-history-button" id="printInspectionMonth" type="button">월간 출력</button>
+            <button class="secondary-btn inspection-history-button inspection-save-pdf-button" id="saveInspectionMonthPdf" type="button">PDF 저장</button>
+          </div>
+        </header>
+        <main class="inspection-body">
+          <label class="inspection-date-field">
+            <span>점검일</span>
+            <input id="inspectionDate" type="date" />
+          </label>
+          <aside class="inspection-legal-notice" role="note">
+            <strong>운행 전 작성 의무</strong>
+            <span>미이행 시 50만원의 과태료가 부과될 수 있습니다.</span>
+          </aside>
+          <div class="inspection-sign-info">
+            <span id="inspectionDriverName">-</span>
+            <span id="inspectionVehicleNumber">차량번호 미설정</span>
+          </div>
+          <div id="inspectionLegacyBadge" class="inspection-legacy-badge hidden">점검 완료 · 수정 가능</div>
+          <div id="inspectionChecklist" class="inspection-checklist"></div>
+          <section id="inspectionDefectFields" class="inspection-defect-fields hidden">
+            <label>이상 내용<textarea id="inspectionDefectNotes" placeholder="이상 상태를 적어주세요"></textarea></label>
+            <label>조치 내용<textarea id="inspectionActionNotes" placeholder="정비·조치 내용을 적어주세요"></textarea></label>
+          </section>
+          <div class="inspection-quick-actions">
+            <button id="inspectionAllGood" class="inspection-good-button" type="button">전체 양호</button>
+            <button id="inspectionReset" class="secondary-btn" type="button">전체 초기화</button>
+          </div>
+          <section class="inspection-signature-confirm">
+            <div>
+              <strong>점검자 서명</strong>
+              <span id="inspectionSignatureStatus">설정에서 서명을 등록해 주세요.</span>
+            </div>
+            <img id="inspectionSignaturePreview" class="hidden" alt="등록된 점검자 서명" />
+            <button id="openSignatureSettings" class="secondary-btn" type="button">서명 등록</button>
+          </section>
+          <label class="inspection-confirm-row"><input id="inspectionConfirmed" type="checkbox" /><span>본인이 직접 점검했으며 위 내용이 맞습니다.</span></label>
+          <button id="saveInspection" class="full-btn inspection-save-button" type="button">일상점검 저장</button>
+          <button id="markNoOperation" class="inspection-no-operation" type="button">오늘 미운행으로 기록</button>
+        </main>
+      </section>
+
+      <section class="view view-record">
+        <header class="sub-header">
+          <button class="round-btn" id="backToCalendar" aria-label="달력으로"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <button class="round-btn" id="prevDay" aria-label="이전 날짜"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <div class="sub-title">
+            <strong id="selectedDateTitle">-</strong>
+          </div>
+          <button class="round-btn" id="nextDay" aria-label="다음 날짜"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+          <label class="off-toggle"><input id="offToggle" type="checkbox" /><span>휴무</span></label>
+        </header>
+
+        <main class="record-body">
+          <div class="entry-actions">
+            <button id="addRoute" class="secondary-btn"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>구역 추가</span></button>
+          </div>
+          <div class="entry-card">
+            <div class="entry-head"><span>구역</span><span>건수</span><span>단가</span><span>매출</span><span></span></div>
+            <div id="entryRows"></div>
+          </div>
+
+          <div class="calc-row" id="freshSingleRow">
+            <span>프레시백</span>
+            <input id="freshCount" type="number" min="0" inputmode="numeric" placeholder="건수" />
+            <span class="multiply">×</span>
+            <input id="freshUnit" type="number" min="0" inputmode="numeric" value="100" />
+            <output id="freshRevenue">0원</output>
+          </div>
+          <div class="calc-row hidden" id="freshDualRow">
+            <span>단독</span>
+            <input id="freshSoloCount" type="number" min="0" inputmode="numeric" placeholder="0" />
+            <span class="multiply">연계</span>
+            <input id="freshLinkedCount" type="number" min="0" inputmode="numeric" placeholder="0" />
+            <output id="freshDualRevenue">0원</output>
+          </div>
+
+          <div class="calc-row backup-only" id="backupRow">
+            <span>백업단가</span>
+            <output id="backupCount">0건</output>
+            <span class="multiply">×</span>
+            <input id="backupUnit" type="number" min="0" inputmode="numeric" value="30" />
+            <output id="backupRevenue">0원</output>
+          </div>
+
+          <div class="total-card"><span>합계</span><strong id="selectedDayTotal">0원</strong></div>
+          <button class="full-btn" id="saveRecord">저장</button>
+        </main>
+      </section>
+
+      <section class="view view-measurement">
+        <header class="sub-header">
+          <div class="sub-title left">
+            <span>완료 가구·상품수</span>
+            <strong>배송 페이스 측정</strong>
+          </div>
+        </header>
+        <main class="settings-body measurement-bridge-body">
+          <section class="settings-section measurement-workday-card">
+            <label class="settings-field">
+              <span>근무표 날짜</span>
+              <input id="measurementWorkDate" type="date" />
+            </label>
+            <div class="measurement-route-summary">
+              <span id="measurementScheduleMeta">PWA 근무표 자동 입력</span>
+              <strong id="measurementRouteText">구역 확인 중</strong>
+              <small id="measurementRouteHint">야간은 정오 전 당일, 정오 이후 다음 날이 기본이며 날짜는 자유롭게 바꿀 수 있습니다.</small>
+            </div>
+          </section>
+          <section class="settings-section">
+            <h2>측정 앱에서 진행</h2>
+            <p class="hint">쿠팡플렉스 화면의 완료 가구·상품수를 읽으려면 설치된 측정 앱을 엽니다. 측정 종료는 페이스 구간만 기기에 저장하며, 매출 기록은 업무 종료 화면에서 구역별 상품수를 확인·보정한 뒤 반영합니다.</p>
+            <button id="openPaceApp" class="full-btn" type="button">측정 앱 열기</button>
+            <p class="hint">업무 종료로 반영된 구역·건수·단가는 해당 날짜의 기록 화면에서 다시 수정할 수 있습니다.</p>
+          </section>
+        </main>
+      </section>
+
+      <section class="view view-stats">
+        <header class="sub-header stats-sub">
+          <div class="sub-title left">
+            <strong id="statsReportTitle">정산 리포트</strong>
+            <span id="statsMonthTitle">이번 정산</span>
+            <em id="statsRange">-</em>
+          </div>
+          <button class="round-btn" id="statsPrevMonth" type="button" aria-label="이전 정산월" hidden><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <button class="round-btn" id="statsNextMonth" type="button" aria-label="다음 정산월" hidden><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </header>
+        <main class="settings-body stats-report-body">
+          <div id="statsInsight" class="instrument-insight" aria-live="polite"></div>
+
+
+          <section class="stats-range-control" aria-labelledby="statsRangeLabel">
+            <div class="stats-range-heading">
+              <h2 id="statsRangeLabel">조회 기간</h2>
+              <button class="stats-custom-toggle" id="statsRangeCustomToggle" data-range="custom" type="button" aria-pressed="false" aria-expanded="false" aria-controls="statsRangeCustom">직접입력</button>
+            </div>
+            <div class="stats-range-tabs" id="statsRangeTabs" role="group" aria-label="빠른 조회 기간">
+              <button data-range="thisMonth" class="active" type="button" aria-pressed="true">이번 정산</button>
+              <button data-range="lastMonth" type="button" aria-pressed="false">지난 정산</button>
+              <button data-range="last3" type="button" aria-pressed="false">3개월</button>
+              <button data-range="last12" type="button" aria-pressed="false">1년</button>
+            </div>
+            <div class="stats-range-custom" id="statsRangeCustom" role="group" aria-label="직접 조회 기간" hidden>
+              <label>
+                <span>시작일</span>
+                <input type="date" id="statsRangeFrom" />
+              </label>
+              <span class="stats-range-separator" aria-hidden="true">~</span>
+              <label>
+                <span>종료일</span>
+                <input type="date" id="statsRangeTo" />
+              </label>
+              <button id="statsRangeApply" type="button">적용</button>
+            </div>
+          </section>
+
+              <div class="stats-chart-toggle" id="statsChartToggle" role="group" aria-label="구역별·요일별·추이 공통 지표">
+                <button type="button" data-metric="revenue" class="active" aria-pressed="true">매출</button>
+                <button type="button" data-metric="count" aria-pressed="false">개수</button>
+              </div>
+          <section class="stats-report-section" aria-labelledby="statsRoutesTitle">
+            <div class="stats-report-section-head">
+              <div>
+                <span>배송 구역</span>
+                <h2 id="statsRoutesTitle">구역별 랭킹</h2>
+              </div>
+            </div>
+            <div id="routeStats" class="route-stats instrument-ranks"></div>
+          </section>
+          <section class="stats-report-section" aria-label="요일별 합계">
+            <div id="statsWeekdays" class="instrument-weekdays"></div>
+          </section>
+          <section class="stats-report-section" aria-labelledby="statsKpiTitle">
+            <h2 id="statsKpiTitle">선택 기간 핵심 수치</h2>
+            <div class="stats-kpi-grid">
+              <div><span>배송 상품 수</span><strong id="periodCount">0건</strong></div>
+              <div><span>근무일당 배송</span><strong id="averageCountHome">0건</strong></div>
+              <div><span>근무일당 매출</span><strong id="dailyAverage">0원</strong></div>
+              <div><span>근무일</span><strong id="workDaysHome">0일</strong></div>
+            </div>
+          </section>
+          <details class="stats-detail-section" id="statsMoreDetails">
+            <summary>매출 구성과 상세 추이 보기</summary>
+          <section class="stats-summary-card stats-report-hero" aria-labelledby="statsHeroLabel">
+            <div class="stats-hero-heading">
+              <span class="ssc-label" id="statsHeroLabel">선택 기간 누적</span>
+              <strong class="ssc-range" id="statsSummaryRange">-</strong>
+            </div>
+            <strong class="stats-report-total" id="statsSummaryTotal">0원</strong>
+            <div class="stats-compare" id="statsComparison" aria-live="polite">
+              <span id="statsCompareLabel">지난 정산 동일 근무일수 대비</span>
+              <strong id="statsCompareValue">비교할 이전 기록 부족</strong>
+              <small id="statsCompareMeta">이번 정산과 같은 근무일수로 비교합니다.</small>
+            </div>
+            <dl class="stats-hero-support">
+              <div>
+                <dt>일평균 매출</dt>
+                <dd id="statsAverage">0원</dd>
+              </div>
+              <div>
+                <dt>근무일수</dt>
+                <dd id="statsWorkDays">0일</dd>
+              </div>
+            </dl>
+            <div class="ssc-meter" id="statsGoalMeter">
+              <div class="ssc-meter-bar"><span id="statsMeterFill"></span></div>
+              <div class="ssc-meter-foot">
+                <span id="statsMeterPct">0%</span>
+                <span id="statsMeterLabel">목표 미설정</span>
+              </div>
+            </div>
+          </section>
+          <section class="stats-chart-card stats-report-section" aria-labelledby="statsTrendTitle">
+            <div class="stats-report-section-head">
+              <div>
+                <span>흐름</span>
+                <h2 id="statsTrendTitle">매출 추이</h2>
+              </div>
+
+            </div>
+            <canvas id="statsChart" height="200" role="img" tabindex="0" aria-describedby="statsChartSummary"></canvas>
+            <p class="stats-chart-hint" id="statsChartSummary">그래프를 터치하거나 좌우 방향키로 상세 데이터를 확인하세요 · 점선은 평균</p>
+            <div class="stats-chart-tooltip" id="statsChartTooltip" role="status" aria-live="polite" hidden></div>
+            <div class="stats-empty-state" id="statsChartEmpty" hidden>
+              <strong>기록된 매출이 없습니다</strong>
+              <p>달력에서 업무 기록을 추가하면 추이를 확인할 수 있습니다.</p>
+              <button id="statsEmptyCalendarButton" class="secondary-btn" type="button">달력에서 기록 보기</button>
+            </div>
+          </section>
+
+          <section class="stats-report-section" aria-labelledby="statsRevenueTitle">
+            <div class="stats-report-section-head">
+              <div>
+                <span>수입 내역</span>
+                <h2 id="statsRevenueTitle">매출 구성</h2>
+              </div>
+              <strong class="stats-section-total" id="statsRevenueTotal">0원</strong>
+            </div>
+            <div id="revenueList" class="revenue-list"></div>
+          </section>
+
+
+
+          <section class="stats-report-section" aria-labelledby="statsDailyTitle">
+            <div class="stats-report-section-head">
+              <div>
+                <span>근무 기록</span>
+                <h2 id="statsDailyTitle">날짜별 기록</h2>
+              </div>
+            </div>
+            <div id="dailyList" class="daily-list"></div>
+          </section>
+
+          </details>
+          <div class="stats-legacy-fields" hidden aria-hidden="true">
+            <span id="statsOffDays">0일</span>
+            <span id="statsCount">0건</span>
+            <span id="statsAvgCount">0건</span>
+            <span id="statsFresh">0건</span>
+            <span id="statsBestDay">-</span>
+            <span id="statsWorstDay">-</span>
+            <div id="yearlyStats"></div>
+            <div id="totalStats"></div>
+          </div>
+        </main>
+      </section>
+
+      <section class="view view-settings">
+        <header class="sub-header">
+          <button class="round-btn" id="backFromSettings" type="button" aria-label="달력으로"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <div class="sub-title left"><strong>설정</strong><span id="syncStatus">미연결</span></div>
+          <button class="secondary-btn" id="logoutBtn">로그아웃</button>
+        </header>
+        <main class="settings-body">
+          <section class="settings-section" aria-labelledby="monthViewTitle">
+            <h2 id="monthViewTitle">월 기록 보기</h2>
+            <div class="month-view-options" role="radiogroup" aria-labelledby="monthViewTitle">
+              <label class="month-view-option">
+                <input type="radio" name="monthView" value="calendar" checked />
+                <span><strong>달력형</strong><span class="setting-desc">날짜와 휴무 흐름을 한눈에</span><small class="setting-tradeoff">금액은 만원 단위로 간략히 표시</small></span>
+                <span class="month-preview-calendar" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+              </label>
+              <label class="month-view-option">
+                <input type="radio" name="monthView" value="list" />
+                <span><strong>기록 리스트형</strong><span class="setting-desc">구역과 정확한 금액을 날짜별로</span><small class="setting-tradeoff">한 달을 보려면 스크롤이 필요</small></span>
+                <span class="month-preview-list" aria-hidden="true"><i></i><i></i><i></i></span>
+              </label>
+            </div>
+            <p class="hint">보기 설정은 이 기기의 미리보기에 저장됩니다.</p>
+            <fieldset id="calendarMetricSettings" class="calendar-metric-settings">
+              <legend>달력형 표시 단위</legend>
+              <div class="calendar-route-toggle">
+                <label class="mode-option"><input type="radio" name="calendarMetric" value="amount" checked /><span>매출</span></label>
+                <label class="mode-option"><input type="radio" name="calendarMetric" value="count" /><span>건수</span></label>
+              </div>
+            </fieldset>
+          </section>
+
+        <section class="inspection-entry-card" id="inspectionEntryCard">
+          <div class="inspection-entry-copy">
+            <span id="inspectionEntryEyebrow">일상점검</span>
+            <strong id="inspectionEntryTitle">운행 전 차량 상태를 확인해주세요</strong>
+            <small id="inspectionEntryStatus">아직 점검하지 않았습니다</small>
+            <small class="inspection-duty-label">운행 전 작성 의무</small>
+          </div>
+          <button id="openInspection" class="inspection-entry-button" type="button">점검하기</button>
+        </section>
+
+          <section class="settings-section profile-settings-section">
+            <h2>내 정보</h2>
+            <div class="settings-field">
+              <label>이름</label>
+              <input id="profileDisplayName" type="text" placeholder="이름" />
+            </div>
+            <div class="settings-field">
+              <label>상호</label>
+              <input id="profileBusinessName" type="text" placeholder="일상점검표에 표시할 상호" />
+            </div>
+            <div class="settings-field">
+              <label>차량번호</label>
+              <input id="profileVehicleNumber" type="text" placeholder="예: 부산80바1234" />
+            </div>
+            <div class="settings-field">
+              <label>근무 시간대</label>
+              <div class="freshbag-toggle">
+                <label class="mode-option">
+                  <input type="radio" name="workShift" value="day" checked />
+                  <span>주간<small>당일 근무표</small></span>
+                </label>
+                <label class="mode-option">
+                  <input type="radio" name="workShift" value="night" />
+                  <span>야간<small>다음 날 근무표</small></span>
+                </label>
+              </div>
+            </div>
+            <div class="settings-field fixed-only">
+              <label>고정 라우트</label>
+              <div id="fixedRoutesText" class="readonly-value">-</div>
+              <input id="fixedRoutesInput" type="hidden" />
+            </div>
+            <button id="saveProfile" class="full-btn">내 정보 저장</button>
+          </section>
+
+          <section class="settings-section signature-settings-section" id="signatureSettingsSection">
+            <h2 id="profileSignatureTitle">일상점검 서명</h2>
+            <p class="hint" id="profileSignatureHelp">손가락으로 서명하면 매일 점검 기록과 월간 출력물에 날짜별로 표시됩니다. 손글씨 입력이 어려우면 아래 전자서명 확인을 사용할 수 있습니다.</p>
+            <canvas id="profileSignatureCanvas" width="600" height="180" role="img" aria-labelledby="profileSignatureTitle" aria-describedby="profileSignatureHelp"></canvas>
+            <label class="inspection-confirm-row"><input id="profileSignatureAlternative" name="profileSignatureAlternative" type="checkbox" /><span>키보드 또는 화면읽기 사용으로 손글씨 서명이 어렵습니다. 내 이름으로 전자서명하는 데 동의합니다.</span></label>
+            <div class="signature-actions">
+              <button id="clearProfileSignature" class="secondary-btn" type="button">다시 쓰기</button>
+              <button id="saveProfileSignature" class="full-btn" type="button">서명 저장</button>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h2>스케줄 가져오기</h2>
+            <div class="upload-row">
+              <label class="upload-btn"><input id="scheduleImage" type="file" accept="image/*" />이미지 선택</label>
+              <button id="runScheduleOcr" class="secondary-btn">OCR 실행</button>
+            </div>
+            <p id="ocrStatus" class="hint">근무표 이미지를 선택 후 OCR 실행을 누르세요.</p>
+            <div id="schedulePreview" class="image-preview"></div>
+            <div id="scheduleDraftSection" class="hidden">
+              <div id="scheduleDraftCards" class="draft-list"></div>
+              <button id="parseSchedule" class="full-btn">스케줄 반영</button>
+            </div>
+            <details>
+              <summary>텍스트 직접 입력</summary>
+              <p class="hint text-example">
+                예시<br />
+                이름, 4/27, 4/28, 4/29<br />
+                김관현, 302C 304C, 휴무, 310C 310D
+              </p>
+              <textarea id="scheduleCsvInput" placeholder="예시처럼 날짜별 스케줄을 붙여넣기"></textarea>
+              <button id="parseScheduleCsv" class="secondary-btn wide">텍스트로 반영</button>
+            </details>
+          </section>
+
+          <section class="settings-section settings-section--slim">
+            <div class="settings-field">
+              <label>달력 라우트 표시</label>
+              <div class="calendar-route-toggle">
+                <label class="mode-option">
+                  <input type="radio" name="calendarRoutes" value="show" />
+                  <span>표시<small>라우트 보이기</small></span>
+                </label>
+                <label class="mode-option">
+                  <input type="radio" name="calendarRoutes" value="hide" />
+                  <span>숨김<small>매출만 보기</small></span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-section settings-section--slim">
+            <div class="settings-field">
+              <label>프레시백 입력 방식</label>
+              <div class="freshbag-toggle">
+                <label class="mode-option">
+                  <input type="radio" name="freshbagMode" value="single" checked />
+                  <span>단일<small>기본 100원</small></span>
+                </label>
+                <label class="mode-option">
+                  <input type="radio" name="freshbagMode" value="dual" />
+                  <span>단독·연계<small>단독 200 / 연계 100</small></span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h2>화면</h2>
+            <div class="theme-toggle">
+              <button type="button" data-theme-set="system" aria-pressed="false"><span>기기 설정</span></button>
+              <button type="button" data-theme-set="light" class="active" aria-pressed="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/></svg>
+                <span>라이트</span>
+              </button>
+              <button type="button" data-theme-set="dark" aria-pressed="false">
+                <svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                <span>다크</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h2>목표 설정</h2>
+            <div class="goal-row">
+              <span class="goal-label">월 목표</span>
+              <input id="goalAmountInput" class="goal-input" type="text" inputmode="numeric" placeholder="6,000,000" autocomplete="off" />
+              <span class="goal-unit">원</span>
+              <button id="saveAppSettings" class="goal-save-btn">저장</button>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h2>단가 관리</h2>
+            <div class="rate-editor">
+              <input id="rateRoute" type="text" placeholder="구역 (예: 322A)" autocapitalize="characters" />
+              <input id="rateUnit" type="number" min="0" inputmode="numeric" placeholder="단가" />
+              <button id="saveRate">저장</button>
+            </div>
+            <div id="rateUpdateOffer" class="rate-update-offer hidden">
+              <div>
+                <strong>새 단가 업데이트</strong>
+                <p id="rateUpdateHint" class="hint"></p>
+              </div>
+              <button id="applyRateUpdate" class="secondary-btn" type="button">업데이트</button>
+            </div>
+            <div id="rateList" class="rate-list"></div>
+          </section>
+
+          <section class="settings-section"><h2>가상 데이터</h2><button class="settings-row" id="refreshApp" type="button"><span>미리보기 새로고침</span><em>가상 기록 유지</em></button><button class="settings-row danger" id="resetData" type="button">미리보기 데이터 초기화</button></section>
+          <p class="app-version">퀵플렉스 매출관리 v1.0.51</p>
+        </main>
+      </section>
+
+      <section class="view view-admin admin-only hidden">
+        <header class="sub-header stats-sub">
+          <div class="sub-title left">
+            <span>관리자</span>
+            <strong id="adminMonthTitle">-</strong>
+            <em id="adminRange">-</em>
+          </div>
+          <button class="round-btn" id="adminPrevMonth" type="button" aria-label="이전 정산월"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <button class="round-btn" id="adminNextMonth" type="button" aria-label="다음 정산월"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </header>
+        <main class="settings-body">
+          <div class="stats-tabs admin-tabs" role="tablist" aria-label="관리 상세">
+            <button class="stats-tab active" id="adminTabSummary" data-admin-tab="summary" type="button" role="tab" aria-controls="adminPanelSummary" aria-selected="true">요약</button>
+            <button class="stats-tab" id="adminTabRoutes" data-admin-tab="routes" type="button" role="tab" aria-controls="adminPanelRoutes" aria-selected="false">라우트</button>
+            <button class="stats-tab" id="adminTabUsers" data-admin-tab="users" type="button" role="tab" aria-controls="adminPanelUsers" aria-selected="false">사용자</button>
+            <button class="stats-tab" id="adminTabSettlement" data-admin-tab="settlement" type="button" role="tab" aria-controls="adminPanelSettlement" aria-selected="false">정산표</button>
+            <button class="stats-tab" id="adminTabBundles" data-admin-tab="bundles" type="button" role="tab" aria-controls="adminPanelBundles" aria-selected="false">OCR보정</button>
+          </div>
+
+          <section class="admin-panel active" id="adminPanelSummary" data-admin-panel="summary" role="tabpanel" aria-labelledby="adminTabSummary">
+            <section id="adminUsageSummary" class="admin-usage-summary" aria-label="최근 30일 통계 화면 사용 요약">
+              <div class="daily-card"><span>사용 현황을 불러오는 중입니다.</span></div>
+            </section>
+            <div id="adminRevenueList" class="admin-revenue-list"></div>
+          </section>
+
+          <section class="admin-panel" id="adminPanelRoutes" data-admin-panel="routes" role="tabpanel" aria-labelledby="adminTabRoutes" hidden>
+            <div id="adminRouteList" class="admin-route-list"></div>
+          </section>
+
+          <section class="admin-panel" id="adminPanelUsers" data-admin-panel="users" role="tabpanel" aria-labelledby="adminTabUsers" hidden>
+            <div id="adminProfiles" class="admin-list"></div>
+          </section>
+
+          <section class="admin-panel" id="adminPanelBundles" data-admin-panel="bundles" role="tabpanel" aria-labelledby="adminTabBundles" hidden>
+            <section class="settings-section">
+              <h2>OCR 보정 묶음</h2>
+              <div class="settings-field">
+                <label>묶음 이름</label>
+                <input id="adminBundleLabel" type="text" placeholder="예: 319ABCD" />
+              </div>
+              <div class="settings-field">
+                <label>구역 코드</label>
+                <input id="adminBundleRoutes" type="text" placeholder="예: 319A, 319B, 319C, 319D" />
+              </div>
+              <button id="saveAdminBundle" class="full-btn">보정 항목 추가</button>
+              <details>
+                <summary>초안 한 번에 입력</summary>
+                <textarea id="adminBundleBulk" placeholder="319ABCD = 319A, 319B, 319C, 319D&#10;405AC410B = 405A, 405C, 410B"></textarea>
+                <button id="importAdminBundles" class="secondary-btn wide">초안 저장</button>
+              </details>
+            </section>
+            <div id="adminBundleList" class="admin-list"></div>
+          </section>
+
+          <section class="admin-panel" id="adminPanelSettlement" data-admin-panel="settlement" role="tabpanel" aria-labelledby="adminTabSettlement" hidden>
+            <section class="settings-section">
+              <h2>정산표 이미지 → 단가 계산</h2>
+              <div class="upload-row">
+                <label class="upload-btn"><input id="settlementImage" type="file" accept="image/*" />이미지 선택</label>
+                <button id="runSettlementOcr" class="secondary-btn">OCR 실행</button>
+              </div>
+              <p id="settlementStatus" class="hint">정산표 이미지를 올리면 Route별 배송건수와 금액을 읽어 단가 후보를 계산합니다.</p>
+              <div id="settlementPreview" class="image-preview"></div>
+              <details>
+                <summary>텍스트 직접 입력</summary>
+                <p class="hint text-example">
+                  예시<br />
+                  302C 250 243750<br />
+                  304C 42 38850
+                </p>
+                <textarea id="csvInput" placeholder="예시처럼 Route, 배송건수, 금액을 한 줄씩 입력"></textarea>
+                <button id="parseCsv" class="full-btn">단가 자동 계산</button>
+              </details>
+            </section>
+          </section>
+        </main>
+      </section>
+
+      <nav class="bottom-nav" aria-label="주요 화면">
+        <button class="nav-tab active" data-view="home" type="button" aria-current="page">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+          <span>달력</span>
+        </button>
+        <button class="nav-tab" data-view="measurement" type="button">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V9"/><path d="M9 19V5"/><path d="M14 19v-7"/><path d="M19 19V3"/></svg>
+          <span>측정</span>
+        </button>
+        <button class="nav-tab" data-view="stats" type="button">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span>통계</span>
+        </button>
+        <button class="nav-tab admin-only hidden" data-view="admin" type="button">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/></svg>
+          <span>관리</span>
+        </button>
+        <button class="nav-tab" data-view="settings" type="button">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          <span>설정</span>
+        </button>
+      </nav>
+
+      <div class="overlay" id="updateNoticeOverlay" aria-hidden="true" inert>
+        <div id="updateNoticeDialog" class="modal-card update-notice-card" role="dialog" aria-modal="true" aria-labelledby="updateNoticeTitle" aria-describedby="updateNoticeIntro" tabindex="-1">
+          <span class="update-notice-badge">새 버전</span>
+          <h2 id="updateNoticeTitle">앱이 업데이트됐습니다</h2>
+          <p id="updateNoticeIntro" class="hint">이번에 달라진 내용을 확인해 주세요.</p>
+          <ul id="updateNoticeItems" class="update-notice-items"></ul>
+          <button id="acknowledgeUpdateNotice" class="full-btn wide" type="button">확인하고 시작</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="salesOverrideOverlay" aria-hidden="true" inert>
+        <div id="salesOverrideDialog" class="modal-card sales-override-card" role="dialog" aria-modal="true" aria-labelledby="salesOverrideTitle" aria-describedby="salesOverrideIntro salesOverrideStatus" tabindex="-1">
+          <h2 id="salesOverrideTitle">매출 수정</h2>
+          <p id="salesOverrideIntro" class="hint">자동기록 원본은 그대로 보존됩니다. 이 날짜의 매출에 사용할 A/B 구역·상품수·단가 전체를 확인한 뒤 저장하세요. 완료 가구 원시값은 매출·타수 계산과 검증에 쓰지 않습니다.</p>
+          <div id="salesOverrideRows" class="sales-override-rows"></div>
+          <button id="salesOverrideAddRoute" class="secondary-btn wide" type="button">A/B 구역 추가</button>
+          <label for="salesOverrideReason" class="sales-override-reason"><span>수정 사유 <small>(선택)</small></span><textarea id="salesOverrideReason" maxlength="1000" placeholder="예: 미분류 2개를 318B에 반영"></textarea></label>
+          <p id="salesOverrideStatus" class="sales-override-status" role="status" aria-live="polite" aria-atomic="true"></p>
+          <div class="two-buttons">
+            <button id="salesOverrideSave" class="full-btn" type="button">수정본 저장</button>
+            <button id="salesOverrideClose" class="secondary-btn" type="button">닫기</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </div>
+
+    <template id="entryTemplate">
+      <div class="entry-row">
+        <input class="route" type="text" autocapitalize="characters" autocomplete="off" placeholder="예: 302C" aria-label="구역" />
+        <input class="count" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="건수" />
+        <input class="unit" type="number" min="0" inputmode="numeric" placeholder="0" aria-label="단가" />
+        <output>0원</output>
+        <button type="button" class="del-btn" aria-label="삭제">×</button>
+        <label class="household-field"><span>가구수</span><input class="households" type="number" min="0" inputmode="numeric" placeholder="자동 입력" aria-label="가구수" /></label>
+      </div>
+    </template>
+
+    
+    
+    
+    
+    
+      <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
