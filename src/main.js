@@ -1,3 +1,5 @@
+import {mountCommercial} from './commercial/commercial-app.js';
+import {clearExpenses} from './commercial/commercial-expenses.js';
 ﻿"use strict";
 
 function previewBlockedFetch() { return Promise.reject(new Error("공개 미리보기에서는 외부 통신을 사용할 수 없습니다.")); }
@@ -5989,7 +5991,9 @@ function previewPostMessage(message) {
   return true;
 }
 
-function previewReset() {
+async function previewReset() {
+  if (!confirm('이 기기의 미리보기 기록과 영수증을 모두 초기화할까요?')) return;
+  try { await clearExpenses(); } catch (error) { toast(`지출 초기화 실패: ${error.message}`, 'error'); return; }
   for (let index = localStorage.length - 1; index >= 0; index -= 1) {
     const key = localStorage.key(index);
     if (key?.startsWith("quickflex-public-preview-")) localStorage.removeItem(key);
@@ -5998,40 +6002,8 @@ function previewReset() {
 }
 
 function previewApplyNativeResult(detail) {
-  const workDate = String(detail?.workDate || "");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(workDate)) {
-    toast("측정 날짜를 확인할 수 없어 결과를 반영하지 않았습니다.", "error");
-    return false;
-  }
-  if (workDate > todayKey()) {
-    toast("미래 날짜의 측정 결과는 반영할 수 없습니다.", "info");
-    return false;
-  }
-  const rows = Array.isArray(detail?.rows) ? detail.rows : [];
-  const normalizedRows = rows.slice(0, 20).map((row) => ({
-    route: normalizeRoute(row?.route),
-    count: Math.max(0, Math.trunc(toNum(row?.count))),
-    unit: Math.max(0, Math.trunc(toNum(row?.unit))),
-    households: "",
-  })).filter((row) => row.route);
-  state.entries[workDate] = normalizeRecordShape({
-    off: false,
-    driverType: "fixed",
-    rows: normalizedRows,
-    freshCount: Math.max(0, Math.trunc(toNum(detail?.freshCount))),
-    returnCount: Math.max(0, Math.trunc(toNum(detail?.returnCount))),
-    cancellationCount: Math.max(0, Math.trunc(toNum(detail?.cancelCount))),
-  });
-  state.selectedDate = workDate;
-  state.measurementDate = workDate;
-  state.measurementDateAuto = false;
-  previewWriteSnapshot();
-  renderAll();
-  renderMeasurementBridge();
-  toast("측정 결과를 가상 기록에 반영했습니다.", "success");
-  return true;
+  return commercialPreview?.receive(detail) || false;
 }
-
 const previewSaved = previewReadSnapshot();
 state.session = { user: { id: PREVIEW_USER_ID } };
 state.profile = {
@@ -6089,4 +6061,21 @@ window.addEventListener("error", (event) => {
   if (status) status.textContent = `미리보기 오류 · ${event.message}`;
 });
 previewWriteSnapshot();
+const commercialPreview = mountCommercial({
+  calculate: calcRecordDetails,
+  entries: state.entries,
+  seeded: !previewSaved?.entries,
+  today: todayKey(),
+  getRates: () => state.rates,
+  saveRates: (rates) => {
+    const next = [...state.rates.filter(row => !rates.some(value => value.route === row.route)), ...rates];
+    const snapshot = { profile: state.profile, rates: next, entries: state.entries };
+    localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify(snapshot));
+    state.rates = next;
+  },
+  getPreferences: () => readDisplayPreferences(localStorage, currentUserId()),
+  openMeasurement: (date) => { state.measurementDate = date; state.measurementDateAuto = false; showView('measurement'); },
+  openSettings: () => showView('settings'),
+  notify: toast,
+});
 
